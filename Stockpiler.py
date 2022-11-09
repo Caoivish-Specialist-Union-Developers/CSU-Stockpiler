@@ -1,11 +1,8 @@
+# Outside libraries import
 import os
 import os.path
-import time
-import tkinter
 from tkinter import *
 from tkinter import ttk
-import json
-import numpy
 from PIL import ImageTk, ImageGrab, Image
 import logging
 import datetime
@@ -16,13 +13,15 @@ import numpy as np
 from global_hotkeys import *
 import csv
 import re
-from requests.sessions import Request
 import xlsxwriter
 from tksheet import Sheet
 import requests
-import threading
 
-# import keyboard
+# Internal Packages Import
+from logCleanup import logSetupCleanup
+from menu import init
+from initWindow import initWindow
+from createToolTip import CreateToolTip
 
 global stockpilename
 global PopupWindow
@@ -64,105 +63,14 @@ class items(object):
 mouse = Controller()
 current_mouse_position = mouse.position
 
-if not os.path.exists("./logs"):
-    os.makedirs("./logs")
+# Logging
 
-logfilename = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
-logfilename = "logs/Stockpiler-log-" + logfilename + ".txt"
-logging.basicConfig(
-    filename=logfilename,
-    format="%(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-)
-print("Log file created: " + logfilename)
-logging.info(str(datetime.datetime.now()) + " Log Created")
+logSetupCleanup()
 
+a = init()
 
-def get_file_directory(file):
-    return os.path.dirname(os.path.abspath(file))
-
-
-# Log cleanup of any contents of logs folder older than 7 days
-now = time.time()
-cutoff = now - (7 * 86400)
-files = os.listdir(os.path.join(get_file_directory(__file__), "logs"))
-file_path = os.path.join(get_file_directory(__file__), "logs/")
-for xfile in files:
-    if os.path.isfile(str(file_path) + xfile):
-        t = os.stat(str(file_path) + xfile)
-        c = t.st_ctime
-        if c < cutoff:
-            os.remove(str(file_path) + xfile)
-            logging.info(
-                str(datetime.datetime.now()) + " " + str(xfile) + " log file deleted"
-            )
-
-Version = "1.4b"
-
-StockpilerWindow = Tk()
-StockpilerWindow.title("Stockpiler " + Version)
-# Window width is based on generated UI.  If buttons change, width should change here.
-StockpilerWindow.geometry("537x600")
-# Width locked since button array doesn't adjust dynamically
-StockpilerWindow.resizable(width=False, height=False)
-StockpilerWindow.iconbitmap(default="Bmat.ico")
-
-
-class menu(object):
-    iconrow = 1
-    iconcolumn = 0
-    lastcat = 0
-    itembuttons = []
-    icons = []
-    category = [
-        [0, 0],
-        [1, 0],
-        [2, 0],
-        [3, 0],
-        [4, 0],
-        [5, 0],
-        [6, 0],
-        [7, 0],
-        [8, 0],
-        [9, 0],
-    ]
-    faction = [0, 0]
-    topscroll = 0
-    
-    CSVExport = IntVar()
-
-    # Update Discord Bot
-    updateBot = IntVar() # Check Box for the setting
-    BotHost = StringVar()
-    BotPassword = StringVar()
-    BotGuildID = StringVar()
-
-    # Update API
-    updateAPI = IntVar() # Checkbox for API update
-    APIHost = StringVar() # Textbox for the host to send the results to
-    APIKey = StringVar() # API key (optional)
-
-    XLSXExport = IntVar()
-    ImgExport = IntVar()
-    debug = IntVar()
-    Set = IntVar()
-    Learning = IntVar()
-    PickerX = -1
-    PickerY = -1
-    bindings = list()
-    grabshift = IntVar()
-    grabctrl = IntVar()
-    grabalt = IntVar()
-    grabhotkey = StringVar()
-    scanshift = IntVar()
-    scanctrl = IntVar()
-    scanalt = IntVar()
-    scanhotkey = StringVar()
-    grabhotkeystring = "f2"
-    scanhotkeystring = "f3"
-    grabmods = "000"
-    scanmods = "000"
-
+StockpilerWindow = a[1]
+menu = a[0]
 
 menu.grabshift.set(0)
 menu.grabctrl.set(0)
@@ -172,83 +80,7 @@ menu.scanctrl.set(0)
 menu.scanalt.set(0)
 menu.debug.set(0)
 
-s = ttk.Style()
-s.theme_use("alt")
-s.configure("EnabledButton.TButton", background="gray")
-s.configure("DisabledButton.TButton", background="red2")
-# Manually disabled button is different color because it is retained regardless of category/faction disable/enable
-s.configure("ManualDisabledButton.TButton", background="red4")
-s.configure("EnabledCategory.TButton", background="gray")
-s.configure("DisabledCategory.TButton", background="red2")
-s.configure("EnabledFaction.TButton", background="gray")
-s.configure("DisabledFaction.TButton", background="red2")
-s.configure(
-    "TScrollbar",
-    troughcolor="grey20",
-    arrowcolor="grey20",
-    background="gray",
-    bordercolor="grey15",
-)
-s.configure("TFrame", background="black")
-s.configure("TCanvas", background="black")
-s.configure("TCheckbutton", background="black", foreground="grey75")
-s.configure("TWindow", background="black")
-s.map(
-    "TCheckbutton",
-    foreground=[
-        ("!active", "grey75"),
-        ("pressed", "black"),
-        ("active", "black"),
-        ("selected", "green"),
-        ("alternate", "purple"),
-    ],
-    background=[
-        ("!active", "black"),
-        ("pressed", "grey75"),
-        ("active", "white"),
-        ("selected", "cyan"),
-        ("alternate", "pink"),
-    ],
-    indicatorcolor=[("!active", "black"), ("pressed", "black"), ("selected", "grey75")],
-    indicatorbackground=[
-        ("!active", "green"),
-        ("pressed", "pink"),
-        ("selected", "red"),
-    ],
-)
-s.configure("TNotebook", background="grey25", foreground="grey15", borderwidth=0)
-s.map(
-    "TNotebook.Tab",
-    foreground=[("active", "black"), ("selected", "black")],
-    background=[("active", "grey80"), ("selected", "grey65")],
-)
-s.configure("TNotebook.Tab", background="grey40", foreground="black", borderwidth=0)
-s.configure(
-    "TRadiobutton",
-    background="black",
-    indicatorbackground="blue",
-    indicatorcolor="grey20",
-    foreground="grey75",
-    focuscolor="grey20",
-)
-s.map(
-    "TRadiobutton",
-    foreground=[
-        ("!active", "grey75"),
-        ("pressed", "black"),
-        ("active", "black"),
-        ("selected", "green"),
-        ("alternate", "purple"),
-    ],
-    background=[
-        ("!active", "black"),
-        ("pressed", "grey15"),
-        ("active", "white"),
-        ("selected", "cyan"),
-        ("alternate", "pink"),
-    ],
-)
-s.configure("TLabel", background="black", foreground="grey75")
+initWindow()
 
 
 global hotkey
@@ -314,69 +146,6 @@ print(items.data[1])
 # Names = [item[3] for item in data]
 # print(Names)
 
-
-class CreateToolTip(object):
-    """
-    create a tooltip for a given widget
-    """
-
-    def __init__(self, widget, text="widget info"):
-        self.waittime = 100  # miliseconds before popup appear
-        self.wraplength = 180  # pixels
-        self.widget = widget
-        self.text = text
-        self.widget.bind("<Enter>", self.enter)
-        self.widget.bind("<Leave>", self.leave)
-        self.widget.bind("<ButtonPress>", self.leave)
-        self.id = None
-        self.tw = None
-
-    def enter(self, event=None):
-        self.schedule()
-
-    def leave(self, event=None):
-        self.unschedule()
-        self.hidetip()
-
-    def schedule(self):
-        self.unschedule()
-        self.id = self.widget.after(self.waittime, self.showtip)
-
-    def unschedule(self):
-        id = self.id
-        self.id = None
-        if id:
-            self.widget.after_cancel(id)
-
-    def showtip(self, event=None):
-        x = y = 0
-        x, y, cx, cy = self.widget.bbox("insert")
-        x, y = mouse.position
-        # have popup slightly offset from mouse
-        x += 15
-        y += 15
-        # creates a toplevel window
-        self.tw = Toplevel(self.widget)
-        # Leaves only the label and removes the app window
-        self.tw.wm_overrideredirect(True)
-        self.tw.wm_geometry("+%d+%d" % (x, y))
-        label = ttk.Label(
-            self.tw,
-            text=self.text,
-            justify="left",
-            relief="ridge",
-            borderwidth=5,
-            background="grey25",
-            foreground="white",
-            wraplength=self.wraplength,
-        )
-        label.pack(ipadx=1)
-
-    def hidetip(self):
-        tw = self.tw
-        self.tw = None
-        if tw:
-            tw.destroy()
 
 
 # Function used simply for grabbing cropped stockpile images
@@ -2295,8 +2064,8 @@ if os.path.exists("Config.txt"):
             str(datetime.datetime.now())
             + " Attempting to load from hotkeys from config.txt"
         )
-        menu.grabhotkey.set(content[9])
-        menu.scanhotkey.set(content[10])
+        menu.grabhotkey.set(content[8])
+        menu.scanhotkey.set(content[9])
         menu.grabhotkeystring = menu.grabhotkey.get()
         menu.scanhotkeystring = menu.scanhotkey.get()
         menu.grabshift.set(content[11][0])
