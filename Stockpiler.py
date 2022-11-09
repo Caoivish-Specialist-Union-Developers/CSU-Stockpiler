@@ -5,7 +5,6 @@ import tkinter
 from tkinter import *
 from tkinter import ttk
 import json
-
 import numpy
 from PIL import ImageTk, ImageGrab, Image
 import logging
@@ -129,11 +128,20 @@ class menu(object):
     ]
     faction = [0, 0]
     topscroll = 0
+    
+    CSVExport = IntVar()
+
+    # Update Discord Bot
+    updateBot = IntVar() # Check Box for the setting
     BotHost = StringVar()
     BotPassword = StringVar()
     BotGuildID = StringVar()
-    CSVExport = IntVar()
-    updateBot = IntVar()
+
+    # Update API
+    updateAPI = IntVar() # Checkbox for API update
+    APIHost = StringVar() # Textbox for the host to send the results to
+    APIKey = StringVar() # API key (optional)
+
     XLSXExport = IntVar()
     ImgExport = IntVar()
     debug = IntVar()
@@ -1168,25 +1176,28 @@ def ItemScan(screen, garbage):
                     )
                 fp.close()
 
-            if menu.updateBot.get() == 1:
-                requestObj = {
-                    "password": menu.BotPassword.get(),
-                    "name": ThisStockpileName,
-                    "guildID": menu.BotGuildID.get(),
+            # Update the CSU API
+
+            if menu.updateAPI.get() == 1:
+                requestObj = { 
+                    "key": menu.APIKey.get(),
                 }
+
                 data = []
                 for x in items.sortedcontents:
                     data.append([x[1], x[2]])
                 requestObj["data"] = data
-                print(requestObj)
                 # print("Bot Data", data)
+                
+                print(requestObj)
 
                 try:
-                    r = requests.post(menu.BotHost.get(), data)
+                    r = requests.post(menu.BotHost.get(), {"data": data, "key":menu.APIKey})
                     response = r.json()
+                    print(response)
                     print("sending")
                 except Exception as e:
-                    print("There was an error connecting to the Bot")
+                    print("There was an error connecting to the API")
                     print("Exception: ", e)
 
             if menu.XLSXExport.get() == 1:
@@ -1496,10 +1507,9 @@ def SaveFilter():
         exportfile.write(str(menu.ImgExport.get()) + "\n")
         exportfile.write(str(menu.Set.get()) + "\n")
         exportfile.write(str(menu.Learning.get()) + "\n")
-        exportfile.write(str(menu.updateBot.get()) + "\n")
-        exportfile.write(str(menu.BotHost.get()) + "\n")
-        exportfile.write(str(menu.BotPassword.get()) + "\n")
-        exportfile.write(str(menu.BotGuildID.get()) + "\n")
+        exportfile.write(str(menu.updateAPI.get()) + "\n")
+        exportfile.write(str(menu.APIHost.get()) + "\n")
+        exportfile.write(str(menu.APIKey.get()) + "\n")
         exportfile.write(str(menu.grabhotkey.get()) + "\n")
         exportfile.write(str(menu.scanhotkey.get()) + "\n")
         menu.grabhotkeystring = menu.grabhotkey.get()
@@ -1663,46 +1673,40 @@ def CreateButtons(self):
     XLSXCheck.grid(row=menu.iconrow, column=1)
     ImgCheck = ttk.Checkbutton(SettingsFrame, text="Image?", variable=menu.ImgExport)
     ImgCheck.grid(row=menu.iconrow, column=2)
+   
+
+    # API update Settings
     menu.iconrow += 1
     catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
     catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
     menu.iconrow += 1
     SendBotCheck = ttk.Checkbutton(
-        SettingsFrame, text="Send To Bot?", variable=menu.updateBot
+        SettingsFrame, text="Send to CSU API?", variable=menu.updateAPI
     )
     SendBotCheck.grid(row=menu.iconrow, column=0, rowspan=2, padx=5)
     SendBotCheck_ttp = CreateToolTip(
-        SendBotCheck, "Send results to Storeman-Bot Discord Bot?"
+        SendBotCheck, "Send results to the CSU-Hub API to help log logi?"
     )
-    BotHostLabel = ttk.Label(SettingsFrame, text="Bot Host:")
+    BotHostLabel = ttk.Label(SettingsFrame, text="API Host:")
     BotHostLabel.grid(row=menu.iconrow, column=2)
-    BotHost = ttk.Entry(SettingsFrame, textvariable=menu.BotHost)
+    BotHost = ttk.Entry(SettingsFrame, textvariable=menu.APIHost)
     BotHost.grid(row=menu.iconrow, column=3, columnspan=2)
     BotHost_ttp = CreateToolTip(
-        BotHost, "Host is http://<your Storeman-Bot server IP>:8090"
+        BotHost, "Host is found on the CSU Hub website under CHANGE ME"
     )
     menu.iconrow += 1
-    BotPasswordLabel = ttk.Label(SettingsFrame, text="Password:")
+    BotPasswordLabel = ttk.Label(SettingsFrame, text="API Key:")
     BotPasswordLabel.grid(row=menu.iconrow, column=2)
-    BotPassword = ttk.Entry(SettingsFrame, textvariable=menu.BotPassword)
+    BotPassword = ttk.Entry(SettingsFrame, textvariable=menu.APIKey)
     BotPassword.grid(row=menu.iconrow, column=3, columnspan=2)
     BotPassword.config(show="*")
     BotPassword_ttp = CreateToolTip(
-        BotPassword, "Password is set with bot using /spsetpassword command in Discord"
+        BotPassword, "An API Key can be generated on the CSU hub website under 'Developer Settings'"
     )
-    menu.iconrow += 1
-    BotGuildIDLabel = ttk.Label(SettingsFrame, text="GuildID:")
-    BotGuildIDLabel.grid(row=menu.iconrow, column=2)
-    BotGuildIDLabel_ttp = CreateToolTip(
-        BotGuildIDLabel,
-        'Only use if you are using a multi-server instance.  If you are using a public instance of Storeman Bot, this is your Discord\'s "Guild ID"',
-    )
-    BotGuildID = ttk.Entry(SettingsFrame, textvariable=menu.BotGuildID)
-    BotGuildID.grid(row=menu.iconrow, column=3, columnspan=2)
-    BotGuildID_ttp = CreateToolTip(
-        BotGuildID,
-        'Only use if you are using a multi-server instance.  If you are using a public instance of Storeman Bot, this is your Discord\'s "Guild ID"',
-    )
+
+
+
+
     menu.iconrow += 1
     catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
     catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
@@ -2271,10 +2275,9 @@ if os.path.exists("Config.txt"):
         menu.ImgExport.set(int(content[2]))
         menu.Set.set(int(content[3]))
         menu.Learning.set(int(content[4]))
-        menu.updateBot.set(int(content[5]))
-        menu.BotHost.set(content[6])
-        menu.BotPassword.set(content[7])
-        menu.BotGuildID.set(content[8])
+        menu.updateAPI.set(int(content[5]))
+        menu.APIHost.set(content[6])
+        menu.APIKey.set(content[7])
     except Exception as e:
         print("Exception: ", e)
         logging.info(
