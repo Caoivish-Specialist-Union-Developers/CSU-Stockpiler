@@ -16,12 +16,14 @@ import re
 import xlsxwriter
 from tksheet import Sheet
 import requests
+import threading
 
 # Internal Packages Import
 from logCleanup import logSetupCleanup
-from menu import init
-from initWindow import initWindow
-from createToolTip import CreateToolTip
+from lib.Window.menu import init
+from lib.Window.initWindow import initWindow
+from lib.Window.createToolTip import CreateToolTip
+from lib.Requests.updateApi import updateApi
 
 global stockpilename
 global PopupWindow
@@ -686,27 +688,7 @@ def ItemScan(screen, garbage):
 
             # Update the CSU API
 
-            if menu.updateAPI.get() == 1:
-                requestObj = { 
-                    "key": menu.APIKey.get(),
-                }
-
-                data = []
-                for x in items.sortedcontents:
-                    data.append([x[1], x[2]])
-                requestObj["data"] = data
-                # print("Bot Data", data)
-                
-                print(requestObj)
-
-                try:
-                    r = requests.post(menu.BotHost.get(), {"data": data, "key":menu.APIKey})
-                    response = r.json()
-                    print(response)
-                    print("sending")
-                except Exception as e:
-                    print("There was an error connecting to the API")
-                    print("Exception: ", e)
+            updateApi(menu, items)
 
 			if menu.updateBot.get() == 1 and ThisStockpileName != "Public":
 				requestObj = {
