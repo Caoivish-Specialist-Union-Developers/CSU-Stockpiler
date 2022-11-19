@@ -949,7 +949,7 @@ def ItemScan(screen, garbage):
 
             # Update the CSU API
 
-            updateApi(menu, items)
+            updateApi(menu, items, ThisStockpileName)
 
             if menu.XLSXExport.get() == 1:
                 workbook = xlsxwriter.Workbook(
