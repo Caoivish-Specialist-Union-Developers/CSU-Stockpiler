@@ -688,7 +688,7 @@ def ItemScan(screen, garbage):
 
             # Update the CSU API
 
-            updateApi(menu, items)
+            updateApi(menu, items, ThisStockpileName)
 
 			if menu.updateBot.get() == 1 and ThisStockpileName != "Public":
 				requestObj = {
