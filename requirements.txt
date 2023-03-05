@@ -1,9 +1,8 @@
 global_hotkeys==0.0.4
-numpy==1.23.3
+numpy==1.23.4
 opencv_python==4.6.0.66
-Pillow==9.2.0
+Pillow==9.3.0
 pynput==1.7.6
-requests==2.28.1
+requests==2.23.0
 tksheet==5.4.1
-xlsxwriter==3.0.3
-pywin32
+XlsxWriter==3.0.3
