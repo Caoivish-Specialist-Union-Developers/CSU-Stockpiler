@@ -1,0 +1,13 @@
+{'name': "ILL Callum's Keep", 'contents': [
+        {'id': '86', 'item': 'Soldier Supplies Crate', 'amount': 0
+        },
+        {'id': '93', 'item': 'Garrison Supplies Crate', 'amount': 0
+        },
+        {'id': '90', 'item': 'Bunker Supplies Crate', 'amount': 0
+        },
+        {'id': '91', 'item': 'Basic Materials Crate', 'amount': 19
+        },
+        {'id': '96', 'item': 'Refined Materials Crate', 'amount': 1
+        }
+    ]
+}
