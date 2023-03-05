@@ -1,3 +1,15 @@
+# Note
+This is a version modified from it's original to 
+1. Make the code more readable,
+2. Expand existing features and add new ones
+3. Add new items as they come out
+
+This project is being developed in conjunction with the CSU-HUB (add link when it's public)
+
+
+
+
+
 # Stockpiler
 A Foxhole logi companion app for quickly reading and transcribing stockpile contents
 

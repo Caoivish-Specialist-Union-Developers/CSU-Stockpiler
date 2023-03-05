@@ -4,7 +4,7 @@ import time
 import tkinter
 from tkinter import *
 from tkinter import ttk
-
+import json
 import numpy
 from PIL import ImageTk, ImageGrab, Image
 import logging
@@ -92,39 +92,59 @@ StockpilerWindow.iconbitmap(default='Bmat.ico')
 
 
 class menu(object):
-	iconrow = 1
-	iconcolumn = 0
-	lastcat = 0
-	itembuttons = []
-	icons = []
-	category = [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0]]
-	faction = [0, 0]
-	topscroll = 0
-	BotHost = StringVar()
-	BotPassword = StringVar()
-	BotGuildID = StringVar()
-	CSVExport = IntVar()
-	updateBot = IntVar()
-	XLSXExport = IntVar()
-	ImgExport = IntVar()
-	debug = IntVar()
-	Set = IntVar()
-	Learning = IntVar()
-	PickerX = -1
-	PickerY = -1
-	bindings = list()
-	grabshift = IntVar()
-	grabctrl = IntVar()
-	grabalt = IntVar()
-	grabhotkey = StringVar()
-	scanshift = IntVar()
-	scanctrl = IntVar()
-	scanalt = IntVar()
-	scanhotkey = StringVar()
-	grabhotkeystring = "f2"
-	scanhotkeystring = "f3"
-	grabmods = "000"
-	scanmods = "000"
+    iconrow = 1
+    iconcolumn = 0
+    lastcat = 0
+    itembuttons = []
+    icons = []
+    category = [
+        [0, 0],
+        [1, 0],
+        [2, 0],
+        [3, 0],
+        [4, 0],
+        [5, 0],
+        [6, 0],
+        [7, 0],
+        [8, 0],
+        [9, 0],
+    ]
+    faction = [0, 0]
+    topscroll = 0
+    
+    CSVExport = IntVar()
+
+    # Update Discord Bot
+    updateBot = IntVar() # Check Box for the setting
+    BotHost = StringVar()
+    BotPassword = StringVar()
+    BotGuildID = StringVar()
+
+    # Update API
+    updateAPI = IntVar() # Checkbox for API update
+    APIHost = StringVar() # Textbox for the host to send the results to
+    APIKey = StringVar() # API key (optional)
+
+    XLSXExport = IntVar()
+    ImgExport = IntVar()
+    debug = IntVar()
+    Set = IntVar()
+    Learning = IntVar()
+    PickerX = -1
+    PickerY = -1
+    bindings = list()
+    grabshift = IntVar()
+    grabctrl = IntVar()
+    grabalt = IntVar()
+    grabhotkey = StringVar()
+    scanshift = IntVar()
+    scanctrl = IntVar()
+    scanalt = IntVar()
+    scanhotkey = StringVar()
+    grabhotkeystring = "f2"
+    scanhotkeystring = "f3"
+    grabmods = "000"
+    scanmods = "000"
 
 menu.grabshift.set(0)
 menu.grabctrl.set(0)
@@ -834,16 +854,29 @@ def ItemScan(screen, garbage):
 				stockpilefile.write(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ",\n")
 				stockpilefile.close()
 
-				# Writing to both csv and xlsx, only the quantity and name is written
-				# If more elements from items.data are added to stockpilecontents, they could be added to these exports as fields
-				with open("Stockpiles//" + ThisStockpileName + ".csv", 'a') as fp:
-					# fp.write('\n'.join('{},{},{}'.format(x[0],x[1],x[2]) for x in stockpilecontents))
-					############### THIS ONE DOES IN REGULAR ORDER ############
-					# fp.write('\n'.join('{},{}'.format(x[1],x[2]) for x in stockpilecontents))
-					############### THIS ONE DOES IN SORTED ORDER #############
-					fp.write('\n'.join('{},{}'.format(x[1], x[2]) for x in items.sortedcontents))
-				fp.close()
+            # Update the CSU API
 
+            if menu.updateAPI.get() == 1:
+                requestObj = { 
+                    "key": menu.APIKey.get(),
+                }
+
+                data = []
+                for x in items.sortedcontents:
+                    data.append([x[1], x[2]])
+                requestObj["data"] = data
+                # print("Bot Data", data)
+                
+                print(requestObj)
+
+                try:
+                    r = requests.post(menu.BotHost.get(), {"data": data, "key":menu.APIKey})
+                    response = r.json()
+                    print(response)
+                    print("sending")
+                except Exception as e:
+                    print("There was an error connecting to the API")
+                    print("Exception: ", e)
 
 			if menu.updateBot.get() == 1 and ThisStockpileName != "Public":
 				requestObj = {
@@ -1121,26 +1154,39 @@ def SaveFilter():
 					str(datetime.datetime.now()) + " Failed loading filter on line: " + str(line), str(e))
 				print("Fail", line)
 
-	with open("Config.txt", "w") as exportfile:
-		exportfile.write(str(menu.CSVExport.get()) + "\n")
-		exportfile.write(str(menu.XLSXExport.get()) + "\n")
-		exportfile.write(str(menu.ImgExport.get()) + "\n")
-		exportfile.write(str(menu.Set.get()) + "\n")
-		exportfile.write(str(menu.Learning.get()) + "\n")
-		exportfile.write(str(menu.updateBot.get()) + "\n")
-		exportfile.write(str(menu.BotHost.get()) + "\n")
-		exportfile.write(str(menu.BotPassword.get()) + "\n")
-		exportfile.write(str(menu.BotGuildID.get()) + "\n")
-		exportfile.write(str(menu.grabhotkey.get()) + "\n")
-		exportfile.write(str(menu.scanhotkey.get()) + "\n")
-		menu.grabhotkeystring = menu.grabhotkey.get()
-		menu.scanhotkeystring = menu.scanhotkey.get()
-		exportfile.write(str(menu.grabshift.get()) + str(menu.grabctrl.get()) + str(menu.grabalt.get()) + "\n")
-		exportfile.write(str(menu.scanshift.get()) + str(menu.scanctrl.get()) + str(menu.scanalt.get()) + "\n")
-	menu.grabmods = str(menu.grabshift.get()) + str(menu.grabctrl.get()) + str(menu.grabalt.get())
-	menu.scanmods = str(menu.scanshift.get()) + str(menu.scanctrl.get()) + str(menu.scanalt.get())
-	SetHotkeys("")
-	CreateButtons("")
+    with open("Config.txt", "w") as exportfile:
+        exportfile.write(str(menu.CSVExport.get()) + "\n")
+        exportfile.write(str(menu.XLSXExport.get()) + "\n")
+        exportfile.write(str(menu.ImgExport.get()) + "\n")
+        exportfile.write(str(menu.Set.get()) + "\n")
+        exportfile.write(str(menu.Learning.get()) + "\n")
+        exportfile.write(str(menu.updateAPI.get()) + "\n")
+        exportfile.write(str(menu.APIHost.get()) + "\n")
+        exportfile.write(str(menu.APIKey.get()) + "\n")
+        exportfile.write(str(menu.grabhotkey.get()) + "\n")
+        exportfile.write(str(menu.scanhotkey.get()) + "\n")
+        menu.grabhotkeystring = menu.grabhotkey.get()
+        menu.scanhotkeystring = menu.scanhotkey.get()
+        exportfile.write(
+            str(menu.grabshift.get())
+            + str(menu.grabctrl.get())
+            + str(menu.grabalt.get())
+            + "\n"
+        )
+        exportfile.write(
+            str(menu.scanshift.get())
+            + str(menu.scanctrl.get())
+            + str(menu.scanalt.get())
+            + "\n"
+        )
+    menu.grabmods = (
+        str(menu.grabshift.get()) + str(menu.grabctrl.get()) + str(menu.grabalt.get())
+    )
+    menu.scanmods = (
+        str(menu.scanshift.get()) + str(menu.scanctrl.get()) + str(menu.scanalt.get())
+    )
+    SetHotkeys("")
+    CreateButtons("")
 
 
 def CreateButtons(self):
@@ -1195,97 +1241,119 @@ def CreateButtons(self):
 	GrabAltCheck.grid(row=menu.iconrow, column=4)
 	# LearningCheck = ttk.Checkbutton(SettingsFrame, text="Learning Mode?", variable=menu.Learning)
 
-	menu.iconrow += 1
-	ScanEntryLabel = ttk.Label(SettingsFrame, text="Scan Stockpile:")
-	ScanEntryLabel.grid(row=menu.iconrow, column=0)
-	ScanEntry = ttk.Entry(SettingsFrame, textvariable=menu.scanhotkey, width=10)
-	ScanEntry.grid(row=menu.iconrow, column=1)
-	ScanEntry.delete(0, 'end')
-	ScanEntry.insert(0, menu.scanhotkeystring)
-	ScanEntry_ttp = CreateToolTip(ScanEntry, 'Available hotkeys are: all letters, numbers, function keys (as f#)'
-													 ', backspace, tab, clear, enter, pause, caps_lock, escape, space, '
-													 'page_up, page_down, end, home, up, down, left, right, select, print, '
-													 'print_screen, insert, delete, help, numpad numbers (as numpad_#), '
-													 'separator_key (pipe key), multiply_key, add_key, subtract_key, '
-													 'decimal_key, divide_key, num_lock, scroll_lock, and symbols '
-													 '(+ - ` , . / ; [ ] \')')
-	ScanShiftCheck = ttk.Checkbutton(SettingsFrame, text="Shift?", variable=menu.scanshift)
-	ScanShiftCheck.grid(row=menu.iconrow, column=2)
-	ScanCtrlCheck = ttk.Checkbutton(SettingsFrame, text="Ctrl?", variable=menu.scanctrl)
-	ScanCtrlCheck.grid(row=menu.iconrow, column=3)
-	ScanAltCheck = ttk.Checkbutton(SettingsFrame, text="Alt?", variable=menu.scanalt)
-	ScanAltCheck.grid(row=menu.iconrow, column=4)
-	menu.iconrow += 1
-	ResetHotkeysButton = ttk.Button(SettingsFrame, text="Reset Hotkeys", command=ResetHotkeys)
-	ResetHotkeysButton.grid(row=menu.iconrow, column=0, columnspan=8, pady=1)
-	ResetHotkeys_ttp = CreateToolTip(ResetHotkeysButton, 'Some combinations may not work, like Ctrl + Shift + F-keys.\n'
-														 'This button will reset the hotkeys to default.  Remember to '
-														 'save your settings.')
-	menu.iconrow += 1
-	setsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
-	setsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
-	menu.iconrow += 1
-	SetLabel = ttk.Label(SettingsFrame, text="Icon set?", style="TLabel")
-	SetLabel.grid(row=menu.iconrow, column=0)
-	DefaultRadio = ttk.Radiobutton(SettingsFrame, text="Default", variable=menu.Set, value=0)
-	DefaultRadio.grid(row=menu.iconrow, column=1)
-	ModdedRadio = ttk.Radiobutton(SettingsFrame, text="Modded", variable=menu.Set, value=1)
-	ModdedRadio.grid(row=menu.iconrow, column=2)
-	menu.iconrow += 1
-	catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
-	catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
-	menu.iconrow += 1
-	LearningCheck = ttk.Checkbutton(SettingsFrame, text="Learning Mode?", variable=menu.Learning)
-	LearningCheck.grid(row=menu.iconrow, column=0, columnspan=2)
-	menu.iconrow += 1
-	catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
-	catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
-	menu.iconrow += 1
-	CSVCheck = ttk.Checkbutton(SettingsFrame, text="CSV?", variable=menu.CSVExport)
-	CSVCheck.grid(row=menu.iconrow, column=0)
-	XLSXCheck = ttk.Checkbutton(SettingsFrame, text="XLSX?", variable=menu.XLSXExport)
-	XLSXCheck.grid(row=menu.iconrow, column=1)
-	ImgCheck = ttk.Checkbutton(SettingsFrame, text="Image?", variable=menu.ImgExport)
-	ImgCheck.grid(row=menu.iconrow, column=2)
-	menu.iconrow += 1
-	catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
-	catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
-	menu.iconrow += 1
-	SendBotCheck = ttk.Checkbutton(SettingsFrame, text="Send To Bot?", variable=menu.updateBot)
-	SendBotCheck.grid(row=menu.iconrow, column=0, rowspan=2, padx=5)
-	SendBotCheck_ttp = CreateToolTip(SendBotCheck, 'Send results to Storeman-Bot Discord Bot?')
-	BotHostLabel = ttk.Label(SettingsFrame, text="Bot Host:")
-	BotHostLabel.grid(row=menu.iconrow, column=2)
-	BotHost = ttk.Entry(SettingsFrame, textvariable=menu.BotHost)
-	BotHost.grid(row=menu.iconrow, column=3, columnspan=2)
-	BotHost_ttp = CreateToolTip(BotHost, 'Host is http://<your Storeman-Bot server IP>:8090')
-	menu.iconrow += 1
-	BotPasswordLabel = ttk.Label(SettingsFrame, text="Password:")
-	BotPasswordLabel.grid(row=menu.iconrow, column=2)
-	BotPassword = ttk.Entry(SettingsFrame, textvariable=menu.BotPassword)
-	BotPassword.grid(row=menu.iconrow, column=3, columnspan=2)
-	BotPassword.config(show="*")
-	BotPassword_ttp = CreateToolTip(BotPassword, 'Password is set with bot using /spsetpassword command in Discord')
-	menu.iconrow += 1
-	BotGuildIDLabel = ttk.Label(SettingsFrame, text="GuildID:")
-	BotGuildIDLabel.grid(row=menu.iconrow, column=2)
-	BotGuildIDLabel_ttp = CreateToolTip(BotGuildIDLabel, 'Only use if you are using a multi-server instance.  If you are using a public instance of Storeman Bot, this is your Discord\'s "Guild ID"')
-	BotGuildID = ttk.Entry(SettingsFrame, textvariable=menu.BotGuildID)
-	BotGuildID.grid(row=menu.iconrow, column=3, columnspan=2)
-	BotGuildID_ttp = CreateToolTip(BotGuildID, 'Only use if you are using a multi-server instance.  If you are using a public instance of Storeman Bot, this is your Discord\'s "Guild ID"')
-	menu.iconrow += 1
-	catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
-	catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
-	menu.iconrow += 1
-	ObnoxiousCheck = ttk.Checkbutton(SettingsFrame, text="  Obnoxious\ndebug mode?", variable=menu.debug)
-	ObnoxiousCheck.grid(row=menu.iconrow, column=0, rowspan=2, padx=5)
-	menu.iconrow += 3
-	SaveImg = PhotoImage(file="UI/Save.png")
-	SaveButton = ttk.Button(FilterFrame, image=SaveImg, command=SaveFilter)
-	
-	SaveButton.image = SaveImg
-	SaveButton.grid(row=menu.iconrow, column=7, columnspan=1, pady=5)
-	SaveButton_ttp = CreateToolTip(SaveButton, 'Save Current Filter and Export Settings')
+    menu.iconrow += 1
+    ScanEntryLabel = ttk.Label(SettingsFrame, text="Scan Stockpile:")
+    ScanEntryLabel.grid(row=menu.iconrow, column=0)
+    ScanEntry = ttk.Entry(SettingsFrame, textvariable=menu.scanhotkey, width=10)
+    ScanEntry.grid(row=menu.iconrow, column=1)
+    ScanEntry.delete(0, "end")
+    ScanEntry.insert(0, menu.scanhotkeystring)
+    ScanEntry_ttp = CreateToolTip(
+        ScanEntry,
+        "Available hotkeys are: all letters, numbers, function keys (as f#)"
+        ", backspace, tab, clear, enter, pause, caps_lock, escape, space, "
+        "page_up, page_down, end, home, up, down, left, right, select, print, "
+        "print_screen, insert, delete, help, numpad numbers (as numpad_#), "
+        "separator_key (pipe key), multiply_key, add_key, subtract_key, "
+        "decimal_key, divide_key, num_lock, scroll_lock, and symbols "
+        "(+ - ` , . / ; [ ] ')",
+    )
+    ScanShiftCheck = ttk.Checkbutton(
+        SettingsFrame, text="Shift?", variable=menu.scanshift
+    )
+    ScanShiftCheck.grid(row=menu.iconrow, column=2)
+    ScanCtrlCheck = ttk.Checkbutton(SettingsFrame, text="Ctrl?", variable=menu.scanctrl)
+    ScanCtrlCheck.grid(row=menu.iconrow, column=3)
+    ScanAltCheck = ttk.Checkbutton(SettingsFrame, text="Alt?", variable=menu.scanalt)
+    ScanAltCheck.grid(row=menu.iconrow, column=4)
+    menu.iconrow += 1
+    ResetHotkeysButton = ttk.Button(
+        SettingsFrame, text="Reset Hotkeys", command=ResetHotkeys
+    )
+    ResetHotkeysButton.grid(row=menu.iconrow, column=0, columnspan=8, pady=1)
+    ResetHotkeys_ttp = CreateToolTip(
+        ResetHotkeysButton,
+        "Some combinations may not work, like Ctrl + Shift + F-keys.\n"
+        "This button will reset the hotkeys to default.  Remember to "
+        "save your settings.",
+    )
+    menu.iconrow += 1
+    setsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
+    setsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
+    menu.iconrow += 1
+    SetLabel = ttk.Label(SettingsFrame, text="Icon set?", style="TLabel")
+    SetLabel.grid(row=menu.iconrow, column=0)
+    DefaultRadio = ttk.Radiobutton(
+        SettingsFrame, text="Default", variable=menu.Set, value=0
+    )
+    DefaultRadio.grid(row=menu.iconrow, column=1)
+    ModdedRadio = ttk.Radiobutton(
+        SettingsFrame, text="Modded", variable=menu.Set, value=1
+    )
+    ModdedRadio.grid(row=menu.iconrow, column=2)
+    menu.iconrow += 1
+    catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
+    catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
+    menu.iconrow += 1
+    LearningCheck = ttk.Checkbutton(
+        SettingsFrame, text="Learning Mode?", variable=menu.Learning
+    )
+    LearningCheck.grid(row=menu.iconrow, column=0, columnspan=2)
+    menu.iconrow += 1
+    catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
+    catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
+    menu.iconrow += 1
+    CSVCheck = ttk.Checkbutton(SettingsFrame, text="CSV?", variable=menu.CSVExport)
+    CSVCheck.grid(row=menu.iconrow, column=0)
+    XLSXCheck = ttk.Checkbutton(SettingsFrame, text="XLSX?", variable=menu.XLSXExport)
+    XLSXCheck.grid(row=menu.iconrow, column=1)
+    ImgCheck = ttk.Checkbutton(SettingsFrame, text="Image?", variable=menu.ImgExport)
+    ImgCheck.grid(row=menu.iconrow, column=2)
+   
+
+    # API update Settings
+    menu.iconrow += 1
+    catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
+    catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
+    menu.iconrow += 1
+    SendBotCheck = ttk.Checkbutton(
+        SettingsFrame, text="Send to CSU API?", variable=menu.updateAPI
+    )
+    SendBotCheck.grid(row=menu.iconrow, column=0, rowspan=2, padx=5)
+    SendBotCheck_ttp = CreateToolTip(
+        SendBotCheck, "Send results to the CSU-Hub API to help log logi?"
+    )
+    BotHostLabel = ttk.Label(SettingsFrame, text="API Host:")
+    BotHostLabel.grid(row=menu.iconrow, column=2)
+    BotHost = ttk.Entry(SettingsFrame, textvariable=menu.APIHost)
+    BotHost.grid(row=menu.iconrow, column=3, columnspan=2)
+    BotHost_ttp = CreateToolTip(
+        BotHost, "Host is found on the CSU Hub website under CHANGE ME"
+    )
+    menu.iconrow += 1
+    BotPasswordLabel = ttk.Label(SettingsFrame, text="API Key:")
+    BotPasswordLabel.grid(row=menu.iconrow, column=2)
+    BotPassword = ttk.Entry(SettingsFrame, textvariable=menu.APIKey)
+    BotPassword.grid(row=menu.iconrow, column=3, columnspan=2)
+    BotPassword.config(show="*")
+    BotPassword_ttp = CreateToolTip(
+        BotPassword, "An API Key can be generated on the CSU hub website under 'Developer Settings'"
+    )
+
+
+
+
+    menu.iconrow += 1
+    catsep = ttk.Separator(SettingsFrame, orient=HORIZONTAL)
+    catsep.grid(row=menu.iconrow, columnspan=8, sticky="ew", pady=10)
+    menu.iconrow += 1
+    ObnoxiousCheck = ttk.Checkbutton(
+        SettingsFrame, text="  Obnoxious\ndebug mode?", variable=menu.debug
+    )
+    ObnoxiousCheck.grid(row=menu.iconrow, column=0, rowspan=2, padx=5)
+    menu.iconrow += 3
+    SaveImg = PhotoImage(file="UI/Save.png")
+    SaveButton = ttk.Button(FilterFrame, image=SaveImg, command=SaveFilter)
 
 	SaveImg2 = PhotoImage(file="UI/Save.png")
 	SaveButton2 = ttk.Button(SettingsFrame, image=SaveImg2, command=SaveFilter)
@@ -1732,60 +1800,80 @@ def open_this(myNum,btn):
 		CreateButtons("blah")
 
 if os.path.exists("Config.txt"):
-	with open("Config.txt") as file:
-		content = file.readlines()
-	content = [x.strip() for x in content]
-	try:
-		print("Attempting to load from Config.txt")
-		logging.info(str(datetime.datetime.now()) + ' Attempting to load from config.txt')
-		menu.CSVExport.set(int(content[0]))
-		menu.XLSXExport.set(int(content[1]))
-		menu.ImgExport.set(int(content[2]))
-		menu.Set.set(int(content[3]))
-		menu.Learning.set(int(content[4]))
-		menu.updateBot.set(int(content[5]))
-		menu.BotHost.set(content[6])
-		menu.BotPassword.set(content[7])
-		menu.BotGuildID.set(content[8])
-	except Exception as e:
-		print("Exception: ", e)
-		logging.info(str(datetime.datetime.now()) + ' Loading from config.txt failed, setting defaults')
-		menu.CSVExport.set(0)
-		menu.XLSXExport.set(0)
-		menu.ImgExport.set(1)
-		menu.Set.set(0)
-		menu.Learning.set(0)
-	try:
-		print("Attempting to load hotkeys from config.txt")
-		logging.info(str(datetime.datetime.now()) + ' Attempting to load from hotkeys from config.txt')
-		menu.grabhotkey.set(content[9])
-		menu.scanhotkey.set(content[10])
-		menu.grabhotkeystring = menu.grabhotkey.get()
-		menu.scanhotkeystring = menu.scanhotkey.get()
-		menu.grabshift.set(content[11][0])
-		menu.grabctrl.set(content[11][1])
-		menu.grabalt.set(content[11][2])
-		menu.grabmods = str(menu.grabshift.get()) + str(menu.grabctrl.get()) + str(menu.grabalt.get())
-		menu.scanshift.set(content[12][0])
-		menu.scanctrl.set(content[12][1])
-		menu.scanalt.set(content[12][2])
-		menu.scanmods = str(menu.scanshift.get()) + str(menu.scanctrl.get()) + str(menu.scanalt.get())
-	except Exception as e:
-		print("Exception: ", e)
-		print("Failed to load hotkeys from config.txt, setting them to defaults of f2, f3")
-		logging.info(str(datetime.datetime.now()) + ' No custom hotkeys in config.txt, setting defaults of f2, f3')
-		menu.grabhotkey.set("f2")
-		menu.scanhotkey.set("f3")
-		menu.grabhotkeystring = menu.grabhotkey.get()
-		menu.scanhotkeystring = menu.scanhotkey.get()
-		menu.grabshift.set(0)
-		menu.grabctrl.set(0)
-		menu.grabalt.set(0)
-		menu.grabmods = "000"
-		menu.scanshift.set(0)
-		menu.scanctrl.set(0)
-		menu.scanalt.set(0)
-		menu.scanmods = "000"
+    with open("Config.txt") as file:
+        content = file.readlines()
+    content = [x.strip() for x in content]
+    try:
+        print("Attempting to load from Config.txt")
+        logging.info(
+            str(datetime.datetime.now()) + " Attempting to load from config.txt"
+        )
+        menu.CSVExport.set(int(content[0]))
+        menu.XLSXExport.set(int(content[1]))
+        menu.ImgExport.set(int(content[2]))
+        menu.Set.set(int(content[3]))
+        menu.Learning.set(int(content[4]))
+        menu.updateAPI.set(int(content[5]))
+        menu.APIHost.set(content[6])
+        menu.APIKey.set(content[7])
+    except Exception as e:
+        print("Exception: ", e)
+        logging.info(
+            str(datetime.datetime.now())
+            + " Loading from config.txt failed, setting defaults"
+        )
+        menu.CSVExport.set(0)
+        menu.XLSXExport.set(0)
+        menu.ImgExport.set(1)
+        menu.Set.set(0)
+        menu.Learning.set(0)
+    try:
+        print("Attempting to load hotkeys from config.txt")
+        logging.info(
+            str(datetime.datetime.now())
+            + " Attempting to load from hotkeys from config.txt"
+        )
+        menu.grabhotkey.set(content[9])
+        menu.scanhotkey.set(content[10])
+        menu.grabhotkeystring = menu.grabhotkey.get()
+        menu.scanhotkeystring = menu.scanhotkey.get()
+        menu.grabshift.set(content[11][0])
+        menu.grabctrl.set(content[11][1])
+        menu.grabalt.set(content[11][2])
+        menu.grabmods = (
+            str(menu.grabshift.get())
+            + str(menu.grabctrl.get())
+            + str(menu.grabalt.get())
+        )
+        menu.scanshift.set(content[12][0])
+        menu.scanctrl.set(content[12][1])
+        menu.scanalt.set(content[12][2])
+        menu.scanmods = (
+            str(menu.scanshift.get())
+            + str(menu.scanctrl.get())
+            + str(menu.scanalt.get())
+        )
+    except Exception as e:
+        print("Exception: ", e)
+        print(
+            "Failed to load hotkeys from config.txt, setting them to defaults of f2, f3"
+        )
+        logging.info(
+            str(datetime.datetime.now())
+            + " No custom hotkeys in config.txt, setting defaults of f2, f3"
+        )
+        menu.grabhotkey.set("f2")
+        menu.scanhotkey.set("f3")
+        menu.grabhotkeystring = menu.grabhotkey.get()
+        menu.scanhotkeystring = menu.scanhotkey.get()
+        menu.grabshift.set(0)
+        menu.grabctrl.set(0)
+        menu.grabalt.set(0)
+        menu.grabmods = "000"
+        menu.scanshift.set(0)
+        menu.scanctrl.set(0)
+        menu.scanalt.set(0)
+        menu.scanmods = "000"
 else:
 	menu.CSVExport.set(0)
 	menu.XLSXExport.set(0)
